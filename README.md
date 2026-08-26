@@ -102,6 +102,21 @@ The search identified the following event:
 | **Command Line**        | `powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand <Base64>`                                  |
 | **Parent Command Line** | `"C:\windows\system32\cmd.exe" /c powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand <Base64>` |
 
+
+### 📸 Central SIEM Investigation Exhibit (All Screenshot Artifacts)
+
+#### Exhibit A: Native Shell Hunt and Query Validation
+*Demonstrates execution of the target SPL filtering loop across the centralized log storage folder.*
+![Splunk Hunting Query Proof](screenshots/investigation-01/01-splunk-search.png)
+
+#### Exhibit B: Expanded Event ID 1 & Telemetry Mapping
+*Verifies the live ingestion connection by extracting the core process creation tokens directly from the SIEM database.*
+![Splunk Field Value Matrix](screenshots/investigation-01/02-process-creation.png)
+
+#### Exhibit C: Obfuscated Parameter Isolation
+*Highlights the specific hidden parameters used by the target execution tree to evade desktop detection hooks.*
+![CommandLine Analysis Proof](screenshots/investigation-01/03-command-line.png)
+
 ---
 
 ## 🌳 Step 3 — Understanding the Process Relationship
