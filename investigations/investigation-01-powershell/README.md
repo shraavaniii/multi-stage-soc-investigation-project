@@ -1,442 +1,236 @@
-\# Investigation 01 — Suspicious PowerShell Execution
+# Investigation 01 — Suspicious PowerShell Execution
 
+**Date:** August 26, 2026
+**Analyst:** Shravani Achal Hendre
+**Environment:** Controlled Lab Simulation
+**Status:** Completed
 
+---
 
-\*\*Date:\*\* August 26, 2026
+## 🔎 Investigation Overview
 
-\*\*Analyst:\*\* Shravani Hendre
+This investigation examined suspicious PowerShell execution observed on the Windows 11 endpoint `SHRAVANI`.
 
-\*\*Environment:\*\* Controlled Lab Simulation
+A PowerShell process was launched by `cmd.exe` with:
 
-\*\*Status:\*\* Completed
+* Hidden window execution
+* `-NoProfile`
+* `-NonInteractive`
+* An encoded PowerShell command
 
-\*\*Classification:\*\* Suspicious Activity — Controlled Simulation
+The activity was investigated using Sysmon process creation telemetry in Splunk.
 
+---
 
+## 🎯 Investigation Objective
 
-\---
+The investigation aimed to determine:
 
+* What process started PowerShell?
+* What command was executed?
+* Was the command obfuscated?
+* What did the decoded command do?
+* Was there additional suspicious activity?
+* How should the activity be classified?
 
+---
 
-\## 1. Investigation Overview
+## 🖥️ Environment
 
+| Component               | Details                    |
+| ----------------------- | -------------------------- |
+| Endpoint                | Windows 11                 |
+| Hostname                | `SHRAVANI`                 |
+| User                    | `SHRAVANI\shrav`           |
+| Monitoring              | Sysmon                     |
+| Log Collection          | Splunk Universal Forwarder |
+| SIEM                    | Splunk Enterprise          |
+| Investigation Interface | Splunk Web                 |
 
+---
 
-A black terminal window briefly appeared on the Windows 11 workstation and disappeared.
+## 🔍 Initial Detection
 
-
-
-The investigation focused on identifying the process responsible, examining its command line, determining the parent-child process relationship, and understanding the executed PowerShell command.
-
-
-
-\---
-
-
-
-\## 2. Lab Environment
-
-
-
-\* \*\*Endpoint:\*\* Windows 11
-
-\* \*\*Hostname:\*\* `SHRAVANI`
-
-\* \*\*User:\*\* `SHRAVANI\\shrav`
-
-\* \*\*Telemetry:\*\* Sysmon
-
-\* \*\*Log Collection:\*\* Splunk Universal Forwarder
-
-\* \*\*SIEM:\*\* Splunk Enterprise
-
-\* \*\*Investigation Interface:\*\* Splunk Web
-
-
-
-\---
-
-
-
-\## 3. Initial Investigation
-
-
-
-The following SPL query was used to identify Sysmon Process Creation events involving PowerShell and Command Shell:
-
-
+The following SPL query was used to identify PowerShell process creation events involving `cmd.exe`:
 
 ```spl
-
 index="windows" "<EventID>1</EventID>" "powershell.exe" "cmd.exe"
-
 ```
 
+### Key Event
 
-
-The search identified a PowerShell process launched through `cmd.exe`.
-
-
-
-\---
-
-
-
-\## 4. Process Evidence
-
-
-
-\### Process Creation
-
-
-
-\*\*Timestamp:\*\*
-
-
-
-`2026-08-26 08:20:48.653 AM`
-
-
-
-\*\*Host:\*\*
-
-
-
-`SHRAVANI`
-
-
-
-\*\*User:\*\*
-
-
-
-`SHRAVANI\\shrav`
-
-
-
-\*\*Process ID:\*\*
-
-
-
-`7956`
-
-
-
-\*\*Image:\*\*
-
-
+**Timestamp:**
 
 ```text
-
-C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe
-
+2026-08-26 08:20:48.653 AM
 ```
 
-
-
-\*\*Parent Process ID:\*\*
-
-
-
-`9252`
-
-
-
-\*\*Command Line:\*\*
-
-
+**Host:**
 
 ```text
-
-powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand <Base64>
-
+SHRAVANI
 ```
 
-
-
-\*\*Parent Command Line:\*\*
-
-
+**User:**
 
 ```text
-
-"C:\\windows\\system32\\cmd.exe" /c powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand <Base64>
-
+SHRAVANI\shrav
 ```
 
-
-
-\---
-
-
-
-\## 5. Parent-Child Relationship
-
-
-
-The process relationship was:
-
-
+**Process ID:**
 
 ```text
+7956
+```
 
+**Image:**
+
+```text
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+```
+
+**Parent Process ID:**
+
+```text
+9252
+```
+
+---
+
+## 🌳 Process Relationship
+
+The process creation telemetry showed:
+
+```text
 cmd.exe
-
-PID 9252
-
-&#x20;  │
-
-&#x20;  └── powershell.exe
-
-&#x20;      PID 7956
-
+   │
+   └── powershell.exe
 ```
 
+The parent process was:
 
+```text
+C:\windows\system32\cmd.exe
+```
 
-This shows that `cmd.exe` launched the PowerShell process.
+The PowerShell process was launched with:
 
+```text
+-NoProfile
+-NonInteractive
+-WindowStyle Hidden
+-EncodedCommand
+```
 
+---
 
-\---
+## 🧾 Command-Line Analysis
 
+### PowerShell Command
 
+The command line contained an encoded PowerShell command:
 
-\## 6. Command-Line Analysis
+```text
+powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand <Base64>
+```
 
+### Parent Command
 
+```text
+"C:\windows\system32\cmd.exe" /c powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand <Base64>
+```
 
-The PowerShell command contained several parameters:
+The use of `-EncodedCommand` required decoding to determine the actual behavior.
 
+---
 
+## 🔓 Decoded Command
 
-| Parameter             | Meaning                                              |
-
-| --------------------- | ---------------------------------------------------- |
-
-| `-NoProfile`          | Starts PowerShell without loading the user's profile |
-
-| `-NonInteractive`     | Runs without interactive user input                  |
-
-| `-WindowStyle Hidden` | Hides the PowerShell window                          |
-
-| `-EncodedCommand`     | Executes a Base64-encoded PowerShell command         |
-
-
-
-The combination of a hidden PowerShell window and an encoded command was treated as suspicious and required further investigation.
-
-
-
-\---
-
-
-
-\## 7. Decoded Command
-
-
-
-The Base64 command was decoded during the investigation.
-
-
-
-Decoded command:
-
-
+The decoded PowerShell command was:
 
 ```powershell
-
-New-Item -Path "$env:PUBLIC\\soclab\_marker.txt" -ItemType File -Force
-
+New-Item -Path "$env:PUBLIC\soclab_marker.txt" -ItemType File -Force
 ```
 
-
-
-This command creates:
-
-
+This creates the following file:
 
 ```text
-
-C:\\Users\\Public\\soclab\_marker.txt
-
+C:\Users\Public\soclab_marker.txt
 ```
 
+The command was intentionally generated as part of the controlled lab simulation.
 
+---
 
-The command was part of the controlled SOC lab simulation.
+## 🧠 MITRE ATT&CK Mapping
 
+| Technique                       | ID        | Relevance                                  |
+| ------------------------------- | --------- | ------------------------------------------ |
+| PowerShell                      | T1059.001 | PowerShell was used to execute the command |
+| Obfuscated Files or Information | T1027     | The PowerShell command was encoded         |
 
+---
 
-\---
+## 📸 Evidence
 
+### 01 — Search Results
 
+![Search Results](screenshots/01-search-results.png)
 
-\## 8. MITRE ATT\&CK Mapping
+### 02 — Process Creation
 
+![Process Creation](screenshots/02-process-creation.png)
 
+### 03 — Command Line
 
-\### T1059.001 — PowerShell
+![Command Line](screenshots/03-command-line.png)
 
+---
 
+## 🧩 Investigation Findings
 
-PowerShell was used to execute the command.
+The investigation established the following:
 
+1. `cmd.exe` launched `powershell.exe`.
+2. PowerShell was executed with a hidden window.
+3. The command used Base64 encoding.
+4. The encoded command was successfully decoded.
+5. The decoded command created a harmless marker file.
+6. The activity was generated intentionally in the lab.
+7. No evidence from this investigation indicated unauthorized activity.
 
+---
 
-\### T1027 — Obfuscated Files or Information
+## 🚦 Final Classification
 
+**Controlled Simulation**
 
+The observed PowerShell execution contained behaviors commonly investigated in SOC environments, including encoded PowerShell and hidden execution.
 
-The PowerShell command was supplied using the `-EncodedCommand` parameter.
+However, in this controlled lab, the activity was intentionally generated for investigation practice.
 
+---
 
+## 📌 Investigation Outcome
 
-These mappings describe the observed techniques and do not by themselves establish malicious activity.
+**Escalation:** Not required for this controlled simulation.
 
+The investigation demonstrated the use of:
 
+* Sysmon process telemetry
+* Splunk search
+* Parent-child process analysis
+* Command-line investigation
+* PowerShell decoding
+* MITRE ATT&CK mapping
+* Security event classification
 
-\---
+---
 
+## ⚠️ Disclaimer
 
+This investigation was performed in a controlled laboratory environment.
 
-\## 9. Investigation Assessment
+The activity was intentionally generated for cybersecurity monitoring and investigation practice.
 
-
-
-The observed execution contained characteristics that commonly require investigation in a SOC environment:
-
-
-
-\* Hidden PowerShell execution
-
-\* Encoded command
-
-\* PowerShell launched through `cmd.exe`
-
-\* File creation command
-
-
-
-The decoded command, however, was associated with the controlled laboratory simulation.
-
-
-
-\### Final Classification
-
-
-
-\*\*Suspicious Activity — Controlled Simulation\*\*
-
-
-
-\---
-
-
-
-\## 10. Evidence
-
-
-
-Screenshots from the investigation are stored in the `screenshots` directory.
-
-
-
-\### Splunk Search
-
-
-
-!\[Initial Splunk Search](screenshots/01\_search\_results.png)
-
-
-
-\### Process Creation
-
-
-
-!\[Process Creation](screenshots/02\_process\_creation.png)
-
-
-
-\### Command-Line Evidence
-
-
-
-!\[Command Line](screenshots/03\_command\_line.png)
-
-
-
-\---
-
-
-
-\## 11. Investigation Workflow
-
-
-
-```text
-
-Suspicious Activity
-
-&#x20;      │
-
-&#x20;      ▼
-
-Splunk Search
-
-&#x20;      │
-
-&#x20;      ▼
-
-Process Creation
-
-&#x20;      │
-
-&#x20;      ▼
-
-Parent-Child Analysis
-
-&#x20;      │
-
-&#x20;      ▼
-
-Command-Line Analysis
-
-&#x20;      │
-
-&#x20;      ▼
-
-Decode PowerShell Command
-
-&#x20;      │
-
-&#x20;      ▼
-
-MITRE ATT\&CK Mapping
-
-&#x20;      │
-
-&#x20;      ▼
-
-Evidence-Based Classification
-
-```
-
-
-
-\---
-
-
-
-\## 12. Key Learning
-
-
-
-This investigation demonstrated how a SOC analyst can use Sysmon and Splunk to move from a suspicious process to the actual command being executed.
-
-
-
-It also demonstrated why command-line parameters, parent-child relationships, and decoded PowerShell content are important when investigating suspicious endpoint activity.
-
-
-
+No unauthorized systems were targeted.
