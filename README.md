@@ -255,4 +255,130 @@ Analyzing:
 * Parent Process ID
 * Parent image
 * User
-* Integrity lev
+* Integrity level
+* Command line
+
+## IOC Pivoting
+
+Investigating indicators such as:
+
+* File paths
+* Process names
+* SHA256 hashes
+* Command-line values
+
+## Timeline Analysis
+
+Correlating:
+
+* Process creation
+* Process termination
+* Network activity
+* File creation
+
+to understand the sequence of events.
+
+## 🗺️ MITRE ATT&CK Mapping
+
+Observed behaviors are mapped to relevant MITRE ATT&CK techniques to provide standardized context.
+
+---
+
+## 📁 Repository Structure
+
+```text
+multi-stage-soc-investigation-project/
+│
+├── README.md
+├── portfolio-logo(final).jpg
+│
+├── investigations/
+│   │
+│   ├── investigation-01-powershell/
+│   │   ├── README.md
+│   │   └── screenshots/
+│   │       ├── 01-search-results.png
+│   │       ├── 02-process-creation.png
+│   │       └── 03-command-line.png
+│   │
+│   └── investigation-02-mshta/
+│       ├── README.md
+│       └── screenshots/
+│           ├── 01-process-creation.png
+│           ├── 02-raw-event.png
+│           ├── 03-timeline.png
+│           ├── 04-network-check.png
+│           ├── 05-file-creation-check.png
+│           └── 06-hash-pivot.png
+│
+└── lab/
+    └── architecture.md
+```
+
+---
+
+## 🧠 Skills Demonstrated
+
+* SOC alert triage
+* Windows security monitoring
+* Sysmon log analysis
+* Splunk investigation
+* Basic SPL querying
+* Process tree analysis
+* Parent-child process correlation
+* PowerShell investigation
+* LOLBin analysis
+* IOC pivoting
+* Hash analysis
+* Timeline correlation
+* Network telemetry analysis
+* MITRE ATT&CK mapping
+* Security investigation documentation
+* Incident classification
+* Escalation decision-making
+
+---
+
+## 📌 Project Scope
+
+The project currently focuses on:
+
+* Alert Triage
+* PowerShell investigation
+* LOLBin investigation
+* Network correlation and C2-related analysis
+* IOC pivoting
+* MITRE ATT&CK mapping
+* Investigation reporting
+* Escalation decisions
+
+The investigations are performed in a controlled laboratory environment for learning and security analysis.
+
+---
+
+## ⚠️ Disclaimer
+
+This project was performed in a controlled lab environment using intentionally generated benign activity.
+
+The observed commands, files, and executions were created for security monitoring and investigation practice.
+
+No unauthorized systems or real-world targets were involved.
+
+---
+
+## 👩‍💻 Analyst
+
+**Shravani Achal Hendre**
+
+Final-Year B.Tech Information Technology Student
+
+### Focus Areas
+
+* Cybersecurity
+* Security Operations
+* Cloud Security
+
+---
+
+⭐ This repository documents the practical SOC investigation work, evidence, analysis, and methodology developed throughout the project.
+
