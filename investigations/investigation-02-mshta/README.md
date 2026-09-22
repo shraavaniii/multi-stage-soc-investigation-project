@@ -1,582 +1,291 @@
-\# Investigation 02 — Suspicious mshta.exe Execution
+# Investigation 02 — Suspicious `mshta.exe` Execution
 
+**Date:** September 17, 2026
 
+**Analyst:** Shravani Achal Hendre
 
-\*\*Date:\*\* September 17, 2026
+**Environment:** Controlled Lab Simulation
 
-\*\*Analyst:\*\* Shravani Hendre
+**Status:** Completed
 
-\*\*Environment:\*\* Controlled Lab Simulation
+---
 
-\*\*Status:\*\* Completed
+## 🔎 Investigation Overview
 
-\*\*Classification:\*\* Controlled / Benign Lab Activity
+This investigation examined the execution of `mshta.exe` on the Windows 11 endpoint `SHRAVANI`.
 
+`mshta.exe` is a legitimate Windows utility that can execute HTML Applications (HTA files). Because the utility can also be abused by attackers, its execution was investigated as potentially suspicious activity.
 
+A controlled benign HTA file was used for this lab test.
 
-\---
+---
 
+## 🎯 Investigation Objective
 
+The investigation aimed to determine:
 
-\## 1. Investigation Overview
+* How `mshta.exe` was executed
+* Which process launched it
+* What file was involved
+* Whether network activity occurred
+* Whether additional files were created
+* Whether the observed hash appeared elsewhere
+* Whether the activity required escalation
 
+---
 
+## 🖥️ Environment
 
-The investigation focused on repeated execution of the Windows utility `mshta.exe`.
+| Component               | Details                    |
+| ----------------------- | -------------------------- |
+| Endpoint                | Windows 11                 |
+| Hostname                | `SHRAVANI`                 |
+| User                    | `SHRAVANI\shrav`           |
+| Monitoring              | Sysmon                     |
+| Log Collection          | Splunk Universal Forwarder |
+| SIEM                    | Splunk Enterprise          |
+| Investigation Interface | Splunk Web                 |
 
+---
 
+## 🧪 Controlled Test
 
-`mshta.exe` is a legitimate Windows binary that can execute HTML Applications (HTA files). Because it can be abused to execute code, its execution was investigated using Sysmon telemetry and Splunk.
-
-
-
-The activity was generated as part of a controlled laboratory test using a harmless HTA file.
-
-
-
-\---
-
-
-
-\## 2. Lab Environment
-
-
-
-\* \*\*Endpoint:\*\* Windows 11
-
-\* \*\*Hostname:\*\* `SHRAVANI`
-
-\* \*\*User:\*\* `SHRAVANI\\shrav`
-
-\* \*\*Telemetry:\*\* Sysmon
-
-\* \*\*Log Collection:\*\* Splunk Universal Forwarder
-
-\* \*\*SIEM:\*\* Splunk Enterprise
-
-\* \*\*Investigation Interface:\*\* Splunk Web
-
-
-
-\---
-
-
-
-\## 3. Test File
-
-
-
-A harmless HTA file was created at:
-
-
+A harmless HTA file was created for the investigation:
 
 ```text
-
-C:\\Users\\Public\\soclab\_test.hta
-
+C:\Users\Public\soclab_test.hta
 ```
 
-
-
-The file displayed a test message and then closed.
-
-
-
-The test command was:
-
-
+The test was executed using:
 
 ```text
-
-mshta.exe C:\\Users\\Public\\soclab\_test.hta
-
+mshta.exe C:\Users\Public\soclab_test.hta
 ```
 
+The HTA displayed a simple alert and then closed.
 
+---
 
-No malicious payload was used.
+## 🔍 Initial Findings
 
+A broad search identified **8 related Sysmon events**:
 
+* 4 Process Creation events
+* 4 Process Termination events
 
-\---
+### Process Creation Timeline
 
+| Timestamp               | Event      | Process     | Parent     |
+| ----------------------- | ---------- | ----------- | ---------- |
+| 2026-09-17 13:02:18.349 | Event ID 1 | `mshta.exe` | `cmd.exe`  |
+| 2026-09-17 16:05:48.957 | Event ID 1 | `mshta.exe` | `cmd.exe`  |
+| 2026-09-17 16:27:52.179 | Event ID 1 | `mshta.exe` | PowerShell |
+| 2026-09-17 22:56:45.592 | Event ID 1 | `mshta.exe` | PowerShell |
 
+Each process creation event was followed by a corresponding process termination event.
 
-\## 4. Initial Search
+---
 
+## 🌳 Process Relationships
 
-
-A search for `mshta.exe` identified \*\*8 Sysmon events\*\* in the available telemetry:
-
-
-
-\* 4 × Event ID 1 — Process Creation
-
-\* 4 × Event ID 5 — Process Termination
-
-
-
-This showed four separate executions of the test file.
-
-
-
-\---
-
-
-
-\## 5. Process Timeline
-
-
-
-| Time         | Event ID | Process                | Parent     |
-
-| ------------ | -------: | ---------------------- | ---------- |
-
-| 13:02:18.349 |        1 | `mshta.exe`            | `cmd.exe`  |
-
-| 13:02:35.730 |        5 | `mshta.exe` terminated | —          |
-
-| 16:05:48.957 |        1 | `mshta.exe`            | `cmd.exe`  |
-
-| 16:05:54.583 |        5 | `mshta.exe` terminated | —          |
-
-| 16:27:52.179 |        1 | `mshta.exe`            | PowerShell |
-
-| 16:27:56.422 |        5 | `mshta.exe` terminated | —          |
-
-| 22:56:45.592 |        1 | `mshta.exe`            | PowerShell |
-
-| 22:56:49.661 |        5 | `mshta.exe` terminated | —          |
-
-
-
-\---
-
-
-
-\## 6. Process Creation Evidence
-
-
-
-The observed executable was:
-
-
+The observed process relationships included:
 
 ```text
-
-C:\\Windows\\System32\\mshta.exe
-
-```
-
-
-
-The file was identified as the legitimate Microsoft HTML Application host.
-
-
-
-Important fields included:
-
-
-
-```text
-
-Description: Microsoft (R) HTML Application host
-
-Company: Microsoft Corporation
-
-OriginalFileName: MSHTA.EXE
-
-User: SHRAVANI\\shrav
-
-IntegrityLevel: High
-
-```
-
-
-
-Observed SHA-256:
-
-
-
-```text
-
-1F1AABE87E5E93A8FFF769BF3614DD559C51C80FC045E11868F3843D9A004D1E
-
-```
-
-
-
-\---
-
-
-
-\## 7. Parent-Child Analysis
-
-
-
-Two parent processes were observed.
-
-
-
-\### Execution through Command Shell
-
-
-
-```text
-
 cmd.exe
-
-&#x20;  │
-
-&#x20;  └── mshta.exe
-
-&#x20;      └── C:\\Users\\Public\\soclab\_test.hta
-
+   │
+   └── mshta.exe
 ```
 
-
-
-\### Execution through PowerShell
-
-
+and:
 
 ```text
-
 powershell.exe
-
-&#x20;  │
-
-&#x20;  └── mshta.exe
-
-&#x20;      └── C:\\Users\\Public\\soclab\_test.hta
-
+   │
+   └── mshta.exe
 ```
 
+---
 
+## 🧾 Raw Event Details
 
-The available telemetry did not show additional child-process activity originating from `mshta.exe`.
+The Sysmon Event ID 1 telemetry showed:
 
+**Image:**
 
+```text
+C:\Windows\System32\mshta.exe
+```
 
-\---
+**Description:**
 
+```text
+Microsoft (R) HTML Application host
+```
 
+**Company:**
 
-\## 8. Network Activity Check
+```text
+Microsoft Corporation
+```
 
+**Original File Name:**
 
+```text
+MSHTA.EXE
+```
 
-Sysmon Event ID 3 was searched to determine whether `mshta.exe` generated a recorded network connection.
+**User:**
 
+```text
+SHRAVANI\shrav
+```
 
+**Integrity Level:**
 
-\### Result
+```text
+High
+```
 
+**SHA256:**
 
+```text
+1F1AABE87E5E93A8FFF769BF3614DD559C51C80FC045E11868F3843D9A004D1E
+```
 
-\*\*0 events found.\*\*
+---
 
+## 🌐 Network Activity Check
 
+A Sysmon Event ID 3 search was performed to check for network connections associated with the activity.
+
+**Result:**
+
+```text
+0 events
+```
 
 No Sysmon Event ID 3 network connection associated with `mshta.exe` was observed in the available telemetry.
 
+---
 
+## 📄 File Creation Check
 
-This does not prove that network activity is impossible; it only reflects the telemetry available during this investigation.
+A Sysmon Event ID 11 search was performed to identify file creation attributed to `mshta.exe`.
 
+**Result:**
 
-
-\---
-
-
-
-\## 9. File Activity Check
-
-
-
-Sysmon Event ID 11 was searched to determine whether `mshta.exe` was associated with recorded file creation.
-
-
-
-\### Result
-
-
-
-\*\*0 events found.\*\*
-
-
+```text
+0 events
+```
 
 No Sysmon Event ID 11 file creation attributed to `mshta.exe` was observed in the available telemetry.
 
+---
 
+## 🔎 IOC Pivot — HTA File
 
-\---
-
-
-
-\## 10. IOC Pivot — HTA File Path
-
-
-
-The following path was searched:
-
-
+The following file path was used as an IOC pivot:
 
 ```text
-
-C:\\Users\\Public\\soclab\_test.hta
-
+C:\Users\Public\soclab_test.hta
 ```
 
+The pivot returned the same four process creation events associated with the controlled test.
 
+No additional related activity was identified through this pivot.
 
-The search returned the same four known process creation events.
+---
 
+## 🔐 IOC Pivot — SHA256
 
-
-No additional activity associated with the test file was identified.
-
-
-
-\---
-
-
-
-\## 11. IOC Pivot — SHA-256
-
-
-
-The observed SHA-256 was searched:
-
-
+The observed `mshta.exe` SHA256 was also used as a pivot:
 
 ```text
-
 1F1AABE87E5E93A8FFF769BF3614DD559C51C80FC045E11868F3843D9A004D1E
-
 ```
 
+The hash pivot returned the same known events.
 
+No additional activity was identified.
 
-The search returned the same known `mshta.exe` process creation events.
+---
 
+## 🧠 MITRE ATT&CK Mapping
 
+| Technique             | ID        | Relevance                                   |
+| --------------------- | --------- | ------------------------------------------- |
+| Mshta                 | T1218.005 | `mshta.exe` was executed                    |
+| PowerShell            | T1059.001 | PowerShell was observed as a parent process |
+| Windows Command Shell | T1059.003 | `cmd.exe` was observed as a parent process  |
 
-No additional activity was identified from the hash pivot.
+---
 
+## 📸 Evidence
 
+### 01 — Process Creation
 
-\---
+![Process Creation](screenshots/01-process-creation.png)
 
+### 02 — Raw Event
 
+![Raw Event](screenshots/02-raw-event.png)
 
-\## 12. MITRE ATT\&CK Mapping
+### 03 — Timeline
 
+![Timeline](screenshots/03-timeline.png)
 
+### 04 — Network Check
 
-\### T1218.005 — Mshta
+![Network Check](screenshots/04-network-check.png)
 
+### 05 — File Creation Check
 
+![File Creation Check](screenshots/05-file-creation-check.png)
 
-`mshta.exe` was used to execute an HTA file.
+### 06 — Hash Pivot
 
+![Hash Pivot](screenshots/06-hash-pivot.png)
 
+---
 
-\### T1059.001 — PowerShell
+## 🧩 Investigation Findings
 
+The investigation established that:
 
+1. `mshta.exe` was executed multiple times during the controlled test.
+2. Both `cmd.exe` and PowerShell were observed as parent processes.
+3. The executed binary was the legitimate Windows `mshta.exe` located in `System32`.
+4. The HTA file was intentionally created for the lab.
+5. No associated Sysmon Event ID 3 network connection was observed.
+6. No associated Sysmon Event ID 11 file creation was observed.
+7. The file-path pivot returned only the known test activity.
+8. The SHA256 pivot returned only the known test activity.
+9. No additional suspicious child-process activity originating from `mshta.exe` was observed in the available telemetry.
 
-PowerShell was observed as a parent process for two executions.
+---
 
+## 🚦 Final Classification
 
+**Controlled / Benign Lab Activity**
 
-\### T1059.003 — Windows Command Shell
+The execution of `mshta.exe` was investigated because it is a Windows utility that can be relevant to suspicious activity.
 
+In this investigation, the observed execution was part of an intentionally generated benign lab test.
 
+---
 
-`cmd.exe` was observed as a parent process for two executions.
+## 📌 Escalation Decision
 
+**No escalation required.**
 
+Based on the available telemetry, there was no additional evidence indicating malicious activity.
 
-These mappings describe observed techniques and do not by themselves establish malicious activity.
+---
 
+## ⚠️ Disclaimer
 
+This investigation was performed in a controlled laboratory environment using intentionally generated benign activity.
 
-\---
+The commands, files, and executions were created for cybersecurity monitoring and investigation practice.
 
-
-
-\## 13. Investigation Assessment
-
-
-
-`mshta.exe` is a legitimate Windows executable, but its ability to execute HTA content makes its use relevant to SOC investigations.
-
-
-
-In this case, the evidence showed:
-
-
-
-\* Legitimate Microsoft `mshta.exe`
-
-\* Known laboratory HTA file
-
-\* Controlled execution
-
-\* No observed Sysmon network connections
-
-\* No observed Sysmon file creation attributed to `mshta.exe`
-
-\* No additional child-process activity in the available telemetry
-
-\* IOC searches returned only the known test activity
-
-
-
-\### Final Classification
-
-
-
-\*\*Controlled / Benign Lab Activity\*\*
-
-
-
-\### Escalation
-
-
-
-\*\*No escalation required based on the available evidence.\*\*
-
-
-
-\---
-
-
-
-\## 14. Evidence
-
-
-
-\### Process Creation
-
-
-
-!\[Process Creation](screenshots/01\_process\_creation.png)
-
-
-
-\### Raw Sysmon Event
-
-
-
-!\[Raw Event](screenshots/02\_raw\_event.png)
-
-
-
-\### Process Timeline
-
-
-
-!\[Timeline](screenshots/03\_process\_timeline.png)
-
-
-
-\### Network Activity Check
-
-
-
-!\[Network Check](screenshots/04\_network\_check.png)
-
-
-
-\### File Activity Check
-
-
-
-!\[File Activity](screenshots/05\_file\_creation\_check.png)
-
-
-
-\### Hash Pivot
-
-
-
-!\[Hash Pivot](screenshots/06\_hash\_pivot.png)
-
-
-
-\---
-
-
-
-\## 15. Investigation Workflow
-
-
-
-```text
-
-mshta.exe Detected
-
-&#x20;      │
-
-&#x20;      ▼
-
-Process Creation Analysis
-
-&#x20;      │
-
-&#x20;      ▼
-
-Parent-Child Analysis
-
-&#x20;      │
-
-&#x20;      ▼
-
-Timeline Reconstruction
-
-&#x20;      │
-
-&#x20;      ├── Network Check
-
-&#x20;      │
-
-&#x20;      ├── File Activity Check
-
-&#x20;      │
-
-&#x20;      └── IOC / Hash Pivot
-
-&#x20;      │
-
-&#x20;      ▼
-
-MITRE ATT\&CK Mapping
-
-&#x20;      │
-
-&#x20;      ▼
-
-Evidence-Based Classification
-
-```
-
-
-
-\---
-
-
-
-\## 16. Key Learning
-
-
-
-This investigation demonstrated how a SOC analyst can investigate a potentially suspicious Windows utility without immediately assuming malicious activity.
-
-
-
-The investigation used process telemetry, parent-child relationships, timelines, network and file checks, and IOC pivots to determine whether the observed `mshta.exe` activity required escalation.
-
-
-
+No unauthorized systems or real-world targets were involved.

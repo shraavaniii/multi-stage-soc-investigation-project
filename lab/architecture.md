@@ -1,272 +1,163 @@
-\# SOC Lab Architecture
+# SOC Lab Architecture
 
+## 🏗️ Environment Overview
 
+This project uses a controlled SOC laboratory environment to collect and investigate Windows endpoint telemetry.
 
-\## Overview
+The main components are:
 
+* Windows 11 endpoint
+* Sysmon
+* Splunk Universal Forwarder
+* Ubuntu Server
+* Splunk Enterprise
+* Splunk Web
 
+---
 
-This project uses a Windows 11 endpoint to generate security telemetry that is collected by Sysmon and forwarded to Splunk Enterprise for investigation.
-
-
-
-\---
-
-
-
-\## Architecture
-
-
+## 🔄 Data Flow
 
 ```text
-
-┌──────────────────────────────┐
-
-│       Windows 11 Host        │
-
-│          SHRAVANI            │
-
-│                              │
-
-│  Test Activity               │
-
-│       ↓                      │
-
-│  Sysmon                      │
-
-└──────────────┬───────────────┘
-
-&#x20;              │
-
-&#x20;              │ Windows Telemetry
-
-&#x20;              ▼
-
-┌──────────────────────────────┐
-
-│ Splunk Universal Forwarder   │
-
-│       Windows Endpoint       │
-
-└──────────────┬───────────────┘
-
-&#x20;              │
-
-&#x20;              │ Forwarded Events
-
-&#x20;              ▼
-
-┌──────────────────────────────┐
-
-│       Ubuntu Server VM       │
-
-│                              │
-
-│      Splunk Enterprise       │
-
-│         Indexer             │
-
-└──────────────┬───────────────┘
-
-&#x20;              │
-
-&#x20;              ▼
-
-┌──────────────────────────────┐
-
-│         Splunk Web           │
-
-│                              │
-
-│       SOC Analyst            │
-
-└──────────────────────────────┘
-
-```
-
-
-
-\---
-
-
-
-\## Components
-
-
-
-\### Windows 11
-
-
-
-The Windows endpoint generates the activity being investigated.
-
-
-
-Hostname:
-
-
-
-```text
-
-SHRAVANI
-
-```
-
-
-
-\---
-
-
-
-\### Sysmon
-
-
-
-Sysmon provides detailed Windows endpoint telemetry.
-
-
-
-Important events used in the investigations include:
-
-
-
-| Event ID | Purpose             |
-
-| -------: | ------------------- |
-
-|        1 | Process Creation    |
-
-|        3 | Network Connection  |
-
-|        5 | Process Termination |
-
-|       11 | File Create         |
-
-
-
-\---
-
-
-
-\### Splunk Universal Forwarder
-
-
-
-The Universal Forwarder collects Windows telemetry and forwards it to the Splunk Enterprise server.
-
-
-
-\---
-
-
-
-\### Ubuntu Server
-
-
-
-The Ubuntu Server virtual machine hosts Splunk Enterprise.
-
-
-
-\---
-
-
-
-\### Splunk Enterprise
-
-
-
-Splunk receives and indexes the forwarded Windows telemetry.
-
-
-
-The analyst uses SPL searches to investigate the collected events.
-
-
-
-\---
-
-
-
-\### Splunk Web
-
-
-
-Splunk Web provides the interface used by the analyst to search, filter, correlate, and investigate security events.
-
-
-
-\---
-
-
-
-\## Data Flow
-
-
-
-```text
-
-Windows Activity
-
-&#x20;      ↓
-
-Sysmon
-
-&#x20;      ↓
-
+Windows 11 Endpoint
+       │
+       │ Sysmon Telemetry
+       ▼
+     Sysmon
+       │
+       │ Windows Event Logs
+       ▼
 Splunk Universal Forwarder
-
-&#x20;      ↓
-
+       │
+       │ Forwarded Logs
+       ▼
+Ubuntu Server
+SOC-Splunk
+       │
+       │
+       ▼
 Splunk Enterprise
-
-&#x20;      ↓
-
+       │
+       │ SPL Queries
+       ▼
 Splunk Web
-
-&#x20;      ↓
-
-SOC Investigation
-
+       │
+       ▼
+SOC Analyst
 ```
 
+---
 
+## 🖥️ Windows Endpoint
 
-\---
+**Hostname:**
 
+```text
+SHRAVANI
+```
 
+The Windows endpoint generates security telemetry through Sysmon.
 
-\## Investigation Method
+---
 
+## 🔍 Sysmon
 
+Sysmon provides detailed Windows system activity used during the investigations.
 
-The general investigation process is:
+### Event IDs Used
 
+| Event ID | Description         | Investigation Use                 |
+| -------- | ------------------- | --------------------------------- |
+| 1        | Process Creation    | Process and command-line analysis |
+| 3        | Network Connection  | Network activity checks           |
+| 5        | Process Termination | Process timeline correlation      |
+| 11       | File Create         | File creation checks              |
 
+---
 
-1\. Identify suspicious activity
+## 📡 Splunk Universal Forwarder
 
-2\. Search relevant Sysmon events
+The Splunk Universal Forwarder runs on the Windows endpoint.
 
-3\. Examine process information
+Its role is to collect and forward Windows telemetry to the Splunk Enterprise server.
 
-4\. Analyze command lines
+```text
+Windows / Sysmon
+       │
+       ▼
+Universal Forwarder
+       │
+       ▼
+Splunk Enterprise
+```
 
-5\. Identify parent-child relationships
+---
 
-6\. Build a timeline
+## 🗄️ Splunk Enterprise
 
-7\. Check network activity
+Splunk Enterprise runs on an Ubuntu Server virtual machine.
 
-8\. Check file activity
+**VM Name:**
 
-9\. Pivot using IOCs such as paths and hashes
+```text
+SOC-Splunk
+```
 
-10\. Map observed behavior to MITRE ATT\&CK
+Splunk Enterprise receives the forwarded telemetry and makes it available for investigation.
 
-11\. Classify the activity using available evidence
+---
 
-12\. Determine whether escalation is required
+## 🔎 Splunk Web
 
+Splunk Web provides the investigation interface used by the analyst.
 
+The analyst uses SPL queries to:
 
+* Search events
+* Filter telemetry
+* Investigate processes
+* Analyze command lines
+* Pivot on IOCs
+* Correlate events
+* Build timelines
+
+---
+
+## 🧑‍💻 Analyst Workflow
+
+```text
+Telemetry
+   │
+   ▼
+Alert / Suspicious Activity
+   │
+   ▼
+Initial Triage
+   │
+   ▼
+Process Analysis
+   │
+   ▼
+IOC Pivoting
+   │
+   ▼
+Network / File Checks
+   │
+   ▼
+MITRE ATT&CK Mapping
+   │
+   ▼
+Classification
+   │
+   ▼
+Escalation Decision
+```
+
+---
+
+## 🧪 Lab Purpose
+
+The environment is designed for hands-on SOC investigation practice.
+
+All suspicious activities documented in this repository were generated or investigated within a controlled laboratory environment.
+
+No unauthorized systems were targeted.
